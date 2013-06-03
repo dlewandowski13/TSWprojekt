@@ -1,0 +1,9 @@
+{
+    "name": "Wezyk",
+    "version": "0.0.1",
+    "description": "zagraj z nami",
+    "dependencies": {
+        "socket.io": "latest"
+    },
+    "author": "Dawid"
+}
