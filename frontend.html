@@ -9,7 +9,7 @@
 			var gra = false; // czy gra jest aktywna	
 			var waz= new Waz("Adam");
 			// wyliczenie ilosc pol do gry w zaleznosci od rozdzieloczosc okna
-			// --->> "-1" zeby plansza gry nie wychodzila poza obszar ekranu
+			// "-1" zeby plansza gry nie wychodzila poza obszar ekranu
 			var ilSzerokosc = parseInt(window.innerWidth / 20) - 1;
 			var ilWysokosc = parseInt(window.innerHeight / 20) - 2 ;	
 			var gracze = [];
@@ -51,8 +51,8 @@
 				plansza = losowanieJedzenia(plansza);
 					
 				// pobranie referencji do obiekty body ze strony HTML
-				//pobieram [0], zeby otrzymac jeden element, a nie cala liste,
-				//bo getElementsBtTagName() zwraca zawsze liste
+				// pobieram [0], zeby otrzymac jeden element, a nie cala liste,
+				// bo getElementsBtTagName() zwraca zawsze liste
 				var body = document.getElementsByTagName('body')[0];	
 				var punktacja = document.createTextNode("Punkty: ");
 				// dodanie obiektu punktacji i planszy (canvas) do ciala strony	
@@ -60,7 +60,7 @@
 				body.appendChild(canvas);
 
 				// nawiazanie polaczenia z serwerem
-				var socket = io.connect('localhost:3250');
+				var socket = io.connect('192.168.0.102:3250');
 							
 				socket.emit("inicjalizacja", waz.imie);
 				
@@ -83,14 +83,19 @@
 					gracze[gracze.length-1].kierunek = w.kierunek;
 					gracze[gracze.length-1].predkosc = w.predkosc;
 					gracze[gracze.length-1].nr = w.nr;
-					console.log("SIEMKA" + w);
+					//console.log("SIEMKA" + w);
 					///ilGraczy++;
 				});
 				
+				socket.on('dodajGraczy', function (g) {
+					gracze = g;
+					console.log("JAK TO" + gracze);
+					///ilGraczy++;
+				});				
 				
 				socket.on('zmien', function (w) {
 					if(w.kierunek) {
-						console.log(w);
+						//console.log(w);
 						gracze[0].kierunek = w.kierunek;
 						//waz.kierunek=data.kierunek;						
 					} else console.log("Blad");					
@@ -117,7 +122,17 @@
 				});	
 					
 				
+				function rysowanieGraczy()
+				{
+					if(gracze.length > 0) {
+						console.log(gracze[0]);
+						plansza = gracze[0].rysuj(plansza);
+					
+					}	
+					
+					
 				
+				}
 
 				
 				// rysowanie kolejnych elementow gry
@@ -126,14 +141,11 @@
 					context.clearRect(0, 0, canvas.width, canvas.height); // wyczyszczenie planszy
 					rysujRamke(); // narysowanie ramki i wypisanie punktacji			
 					
-					// narysowanie lokalnego gracza
-					
+					// narysowanie lokalnego gracza					
 					plansza = waz.rysuj(plansza);
-					if(gracze.length > 0) {
-						console.log(gracze[0]);
-						plansza = gracze[0].rysuj(plansza);
+					// rysowanie innych graczy
+					rysowanieGraczy();
 					
-					}
 					// if(bolek) plansza = gracze[1].rysuj(plansza);
 					
 					//for(i=1; i<gracze.length-1; i++)
@@ -246,7 +258,7 @@
 				
 				// wyloowanie pozycji dla glowy weza
 				var wspolrzedne = losowanieWspolrzednych();
-				
+
 				// sprawdzenie czy wylosowana pozycja glowy pozwoli na zmieszczenie reszty czlonow weza
 				while (((wspolrzedne[0] - this.waz.length) < 0) || ( plansza[wspolrzedne[0]][wspolrzedne[1]] == this.nr)
 						|| ( plansza[wspolrzedne[0]][wspolrzedne[1]] ==5)) 

@@ -1,7 +1,16 @@
+
 var gra = false; // czy gra jest aktywna	
 var waz= new Waz("Adam");
 // wyliczenie ilosc pol do gry w zaleznosci od rozdzieloczosc okna
-// "-1" zeby plansza gry nie wychodzila poza obszar ekranu
+// --->> "-1" zeby plansza gry nie wychodzila poza obszar ekranu
+var ilSzerokosc = parseInt(window.innerWidth / 20) - 1;
+var ilWysokosc = parseInt(window.innerHeight / 20) - 2 ;	
+var gracze = [];
+// tworze obiekt canvas ze standardu HTML 5 do rysowania na nim gry
+var canvas = document.createElement('canvas'),
+	context = canvas.getContext('2d'),
+	ilWezy = 0,
+	predkosc = 800;
 
 // stworzenie planszy o dwoch wymiarach 
 var plansza = new Array(ilSzerokosc);
@@ -9,7 +18,7 @@ for (var i = 0; i < plansza.length; i++)
 	plansza[i] = new Array(ilWysokosc);
 
 
-
+window.onload = function() {
 	var bolek = false;
 			
 	// wymiary ramki do planszy
@@ -141,8 +150,8 @@ for (var i = 0; i < plansza.length; i++)
 	//	plansza = waz2.rysuj(plansza);
 		
 		// narysowanie wezy i jedzenia
-		for (var x = 0; x < plansza.length; x++) {
-			for (var y = 0; y < plansza[0].length; y++) {
+		for (var x = 0; x < ilSzerokosc; x++) {
+			for (var y = 0; y < ilWysokosc-1; y++) {
 				if (plansza[x][y] === 5) {
 					context.fillStyle = 'red';
 					context.fillRect(x * 20, y * 20, 20, 20);
@@ -184,6 +193,11 @@ for (var i = 0; i < plansza.length; i++)
 	}	
 	
 
+	
+
+
+
+} // koniec onLoada
 
 function losowanieJedzenia(plansza)
 {
@@ -278,11 +292,8 @@ this.rysuj = function(plansza)
 			// sprawdzenie czy glowa weza nie wyszla poza zakres planszy gry
 			if (this.waz[0].x < 0 || this.waz[0].x >= ilSzerokosc || 	this.waz[0].y < 0 ||	this.waz[0].y >= ilWysokosc)
 			{				
-				//przegrana(this.imie);
-				plansza.push(this.nr);
-				plansza[this.waz[0].y].push(this.nr);
-				plansza[this.waz[0].x][this.waz[0].y] = this.nr;
-				//return;					
+				przegrana(this.imie);
+				return;					
 			}
 			// jesli waz wszedl na jedzenie to zwiekszam il. punktow
 			if (plansza[this.waz[0].x][this.waz[0].y] === 5) 
@@ -324,6 +335,4 @@ this.rysuj = function(plansza)
 	return plansza;		
 }
 
-}			
-					
-					
+}

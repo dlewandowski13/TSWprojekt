@@ -2,11 +2,19 @@ var gra = false; // czy gra jest aktywna
 var waz= new Waz("Adam");
 // wyliczenie ilosc pol do gry w zaleznosci od rozdzieloczosc okna
 // "-1" zeby plansza gry nie wychodzila poza obszar ekranu
+	var ilSzerokosc = parseInt(window.innerWidth / 20) - 1;
+	var ilWysokosc = parseInt(window.innerHeight / 20) - 3;	
 
+	var gracze = [];
+	// tworze obiekt canvas ze standardu HTML 5 do rysowania na nim gry
+	var canvas = document.createElement('canvas'),
+	context = canvas.getContext('2d'),
+	ilWezy = 0,
+	predkosc = 800;
 // stworzenie planszy o dwoch wymiarach 
-var plansza = new Array(ilSzerokosc);
-for (var i = 0; i < plansza.length; i++)	
-	plansza[i] = new Array(ilWysokosc);
+	var plansza = new Array(ilSzerokosc);
+	for (var i = 0; i < plansza.length; i++)	
+		plansza[i] = new Array(ilWysokosc);
 
 
 
@@ -44,7 +52,7 @@ for (var i = 0; i < plansza.length; i++)
 	body.appendChild(canvas);
 
 	// nawiazanie polaczenia z serwerem
-	var socket = io.connect('192.168.0.102:3250');
+	var socket = io.connect('http://localhost:3250');
 				
 	socket.emit("inicjalizacja", waz.imie);
 	
@@ -68,7 +76,8 @@ for (var i = 0; i < plansza.length; i++)
 		gracze[gracze.length-1].predkosc = w.predkosc;
 		gracze[gracze.length-1].nr = w.nr;
 		//console.log("SIEMKA" + w);
-		///ilGraczy++;
+		///ilGraczy++; 
+		
 	});
 	
 	socket.on('dodajGraczy', function (g) {
