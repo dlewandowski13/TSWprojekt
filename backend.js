@@ -65,7 +65,8 @@ io.sockets.on('connection', function (socket) {
 
 	socket.on('zjadlemWeza', function (nr) {
 		console.log("Zjadlem weza" );
-		socket.broadcast.emit('skrocWeza', nr);
+		// wyslanie informacji do wszystkich oprocz tego co zjadl
+		socket.broadcast.emit('skrocWeza', nr); 
 		
 		gracze[nr].punkty+=5;
 		var ilosc = gracze[nr].waz.length/2;
@@ -147,7 +148,7 @@ io.sockets.on('connection', function (socket) {
 		// zapisanie gracza w pamieci serwera
 		gracze[ilGraczy] = waz;
 		aktywnosc[ilGraczy] = 1;
-		rysowanieGraczy();
+		if(ilGraczy ==1) rysowanieGraczy();
 		// wyslanie innym graczom klasy stworzonego weza
 		socket.broadcast.emit('wezWeza', waz);
 	}
@@ -255,8 +256,8 @@ function rysowanieGraczy()
 {
 	for(var i = 0; i < gracze.length; i++)
 	{
-		// jesli gracz istnieje)
-		if(gracze[i] != 1 && gracze[i].aktywnosc == true) gracze[i].ruszaj();
+		// jesli gracz istnieje
+		if((gracze[i] != 1 )&& (gracze[i].aktywnosc == true)) gracze[i].ruszaj();
 	}
 	setTimeout(rysowanieGraczy, 400);
 }
