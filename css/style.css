@@ -1,14 +1,29 @@
+html, body {
+  //overflow: hidden;
+}
+
 *{
 	margin:0;
 	padding:0;
 }
+#punktacja{
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  border: 1px solid #000;
+  border-radius: 5px;
+margin:10px;
+padding:10px;
+}
+
 body{
+	overflow: hidden;
 	font-family:"Trebuchet MS", "Myriad Pro", Arial, sans-serif;
 	font-size:14px;
 	background:#f4f4f4 url(../images/bg.gif) repeat top left;
 	color:#333;
 	text-shadow:1px 1px 1px #fff;
-	overflow-y:scroll;
+	//overflow-y:scroll;
 }
 h1{
 	font-size:56px;

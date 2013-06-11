@@ -23,10 +23,10 @@ for(var i=0; i < gracze.length; i++)
 	aktywnosc[i] = 0; 
 }
 
-var plansza;
+// zmienne serwera
+var ilSzerokosc=0;
+var ilWysokosc=0;
 var ilGraczy = 0;
-var ilSzerokosc;
-var ilWysokosc;
 var jedzenie;
 
 // uruchomienie serwera http
@@ -37,45 +37,63 @@ io.sockets.on('connection', function (socket) {
 	
 	// wywowylane przez klienta po polaczeniu sie z serwerem
 	socket.on('inicjalizacja', function (imie, ilSzer, ilWys) {
-		// jesli jeszcze nie gral zadne gracz, tworze plansze do gry
+		// jesli jeszcze nie gral zadne gracz
 		if(ilGraczy==0) 
 		{
-			stworzPlansze(ilSzer, ilWys);
-			jedzenie = losowanieJedzenia();
+			ilSzerokosc = ilSzer;
+			ilWysokosc = ilWys;
+			jedzenie = losowanieWspolrzednych();
 			socket.emit('jedzenie', { x: jedzenie[0], y: jedzenie[1] } );
 		}
 		else {
+			// jesli nowa podlaczony gracz ma mniejsza ekran niz obecnie ustawiony to zmniejszamy 
+
+			if(ilWysokosc > ilWys || ilSzerokosc > ilSzer ) 
+			{
+				ilWysokosc = ilWys;
+				ilSzerokosc = ilSzer;
+			}
 			socket.emit('jedzenie', { x: jedzenie[0], y: jedzenie[1] } );
 			for(var i=0; i< gracze.length; i++)
 			{ // wyslanie obecnie grajacych wezy
-				if(gracze[i] !=1) socket.emit('wezWeza', gracze[i]);
+				if(gracze[i] !=1) if(gracze[i].aktywnosc ==true) socket.emit('wezWeza', gracze[i]);
 			}		
 		}
 		// dodanie obecnie inicjalizowanego gracza do planszy
 		dodajGracza(imie, ilSzer, ilWys);				
   	});	
 	
+	// funckja wykonuje sie w odpowiedzi na informacje od klienta o tym, ze zjadl jablko	
 	socket.on('zjadlemJablko', function (nr) {
 		gracze[nr].punkty++;
+		gracze[nr].wydluz();
+		// wyslanie innym klientom rozkazu zwiekszenia il punktow 
+		// --> broadcast czyli wszystkim oprocz tego klienta ktory odpalil ta funkcje w ktorej jestesmy 
 		socket.broadcast.emit('dodajPunkt', nr);
-		jedzenie = losowanieJedzenia();
+		jedzenie = losowanieWspolrzednych();
 		// wyslanie pozycji nowego jablka do wszystkich graczy
 		io.sockets.emit('jedzenie', { x: jedzenie[0], y: jedzenie[1] } );
   	});	
 
-	socket.on('zjadlemWeza', function (nr) {
+	socket.on('zjadlemWeza', function (nr, tenCoZjadl) {
 		console.log("Zjadlem weza" );
-		// wyslanie informacji do wszystkich oprocz tego co zjadl
-		socket.broadcast.emit('skrocWeza', nr); 
-		
-		gracze[nr].punkty+=5;
-		var ilosc = gracze[nr].waz.length/2;
-		for(var j=0; j<ilosc; j++)
+		if( gracze[nr] != 1)
 		{
-			gracze[nr].waz.pop();
+			// wyslanie informacji do wszystkich oprocz tego co zjadl
+			socket.broadcast.emit('skrocWeza', nr, tenCoZjadl);			
+			gracze[tenCoZjadl].punkty+=5;
+			var ilosc = gracze[nr].waz.length/2;
+			for(var j=0; j<ilosc; j++)
+			{
+				gracze[nr].waz.pop();
+			}
 		}
-
-  	});	
+  	});
+	
+	socket.on('przegralem', function (nr) {
+		gracze[nr] = 1; // oznaczenie jako brak gracza --> tak jak inicjalnie wypelniam tablice graczy "1" 
+		socket.broadcast.emit('przegral', nr);
+  	});
 	
 	// po wylaczeniu przegladarki wykona sie ta funkcja
 	socket.on('disconnect', function () {		
@@ -91,8 +109,12 @@ io.sockets.on('connection', function (socket) {
 	
 	// aktualizacja zmiany kierunku jednego z wezy u reszty graczy
 	socket.on('ruch', function (data) {
+	if(gracze[data.nr] != 1)
+	{
         socket.broadcast.emit('zmien', data);
 		gracze[data.nr].kierunek = data.kierunek;
+		gracze[data.nr].ruszaj();
+	}
 });	
 	
 	// funkcja sprawdzajaca, ktory gracz sie odlaczyl
@@ -107,16 +129,6 @@ io.sockets.on('connection', function (socket) {
 				socket.broadcast.emit('zatrzymajWeza', i);
 			}
 		for(var i=0; i < aktywnosc.length; i++) if(aktywnosc[i] == 2) aktywnosc[i] == 1;
-	}
-	
-	function stworzPlansze(ilSzer, ilWys)
-	{
-		ilSzerokosc = ilSzer;
-		ilWysokosc = ilWys;
-		plansza = new Array(ilSzer);
-		for (var i = 0; i < plansza.length; i++)	
-			plansza[i] = new Array(ilWys);	
-
 	}
 
 	function dodajGracza(imie, ilSzer, ilWys)
@@ -139,47 +151,31 @@ io.sockets.on('connection', function (socket) {
 			waz = new Waz(imie);
 			ilGraczy++;
 			waz.nr = ilGraczy;
-			waz.stworz(4, ilSzer, ilWys);
+			waz.stworz(4);
 		}
 		
 		// przekazanie parametrow weza do gracza wlasnie podlaczajacego sie
-		//console.log("  !!!! "+waz.waz[0].x+" "+waz.waz[0].y);
 		socket.emit('numerek', ilGraczy, waz.waz[0].x, waz.waz[0].y);	
 		// zapisanie gracza w pamieci serwera
-		gracze[ilGraczy] = waz;
+		gracze[waz.nr] = waz;
 		aktywnosc[ilGraczy] = 1;
-		if(ilGraczy ==1) rysowanieGraczy();
 		// wyslanie innym graczom klasy stworzonego weza
 		socket.broadcast.emit('wezWeza', waz);
-	}
-
-	function losowanieJedzenia()
-	{
-		// wylosowanie wspolrzednych dla jedzenia
-		var wspolrzedne = new Array(2);
-		wspolrzedne[0] = Math.round(Math.random() * ilSzerokosc);
-		wspolrzedne[1] = Math.round(Math.random() * ilWysokosc);
-		console.log(wspolrzedne[0]+" "+ wspolrzedne[1]);
-	
-		return wspolrzedne;	
 	}
 
 // koniec polaczenia
 });
 
-
-function losowanieX()
-{
-	return Math.round(Math.random() * ilSzerokosc);
-}
-
 function losowanieWspolrzednych()
 {
 	var tab = [2];
-	tab[0] = Math.round(Math.random() * ilSzerokosc);
-	tab[1] = Math.round(Math.random() * ilWysokosc);
+	do {
+		tab[0] = Math.round(Math.random() * ilSzerokosc);
+		tab[1] = Math.round(Math.random() * ilWysokosc);
+	} while (tab[0] <= 12 || tab[1]  <=10); // --> ograniczam losowanie, zeby waz lub jablko nie wylosowalo sie za blisko gornego lewego rogu
 	return tab;
 }	
+
 // klasa weza
 function Waz(imie)
 {
@@ -189,23 +185,19 @@ function Waz(imie)
 	this.aktywnosc;
 	this.ilSzerokosc;
 	this.ilWysokosc;
+	this.punkty;
 
-	this.wpisz = function()
+	// funkcja wydluza tulow weza o 1
+	this.wydluz = function()
 	{
-		// wpisanie weza na plansze zaczynajac od glowy
-		for (var i = 0; i < this.waz.length; i++)
-		{
-			plansza[this.waz[i].x][this.waz[i].y] = this.nr;
-		}		
+		this.waz.push({ x: this.waz[this.waz.length - 1].x, y: this.waz[this.waz.length - 1].y });
 	}
 
 	this.stworz = function(init) 
 	{
-		//console.log("szerokosc: "+plansza.length+" wys: " +plansza[0].length);
 		this.kierunek = 'p';
 		this.punkty = 0;
 		this.aktywnosc = true;
-		this.predkosc = 400;	
 		this.waz = new Array(init);
 		
 		var wspolrzedne = losowanieWspolrzednych();
@@ -215,7 +207,6 @@ function Waz(imie)
 		{
 			this.waz[i] = { x: wspolrzedne[0] - i, y: wspolrzedne[1] };
 		}	 
-		//return plansza;
 	}
 
 	this.ruszaj = function() 
@@ -241,23 +232,11 @@ function Waz(imie)
 					break;
 				}
 				
-				//plansza[this.waz[0].x][this.waz[0].y] = this.nr;
 			} else  // dla wszystkich czlonow weza oprocz glowy
 			{
 				// przypisanie miejsca wczesniejszego czlonu weza do czlonu i
 				this.waz[i] = { x: this.waz[i - 1].x, y: this.waz[i - 1].y };				
-			}			
-		//return plansza;		
+			}				
 		}
 	}
-}	
-
-function rysowanieGraczy()
-{
-	for(var i = 0; i < gracze.length; i++)
-	{
-		// jesli gracz istnieje
-		if((gracze[i] != 1 )&& (gracze[i].aktywnosc == true)) gracze[i].ruszaj();
-	}
-	setTimeout(rysowanieGraczy, 400);
 }
